@@ -1,0 +1,65 @@
+#!/bin/bash
+# simulate-mdm-push — uses `defaults write` to simulate an MDM Custom Settings
+# push for the avc-sync preference domain.
+#
+# Writes to ~/Library/Preferences/io.k8jss.avc-sync.plist (user layer), which
+# CFPreferencesCopyAppValue reads without requiring root or managed preferences.
+#
+# Usage:
+#   ./scripts/simulate-mdm-push
+#   ./scripts/simulate-mdm-push --clear
+#   ./scripts/simulate-mdm-push --force-cleanup
+
+set -euo pipefail
+
+DOMAIN="io.k8jss.avc-sync"
+
+if [[ "${1:-}" == "--clear" ]]; then
+	defaults delete "${DOMAIN}" 2>/dev/null || true
+	echo "Cleared preferences for ${DOMAIN}"
+	exit 0
+fi
+
+defaults write "${DOMAIN}" VpnProfiles -array \
+	"<dict>
+		<key>ProfileName</key><string>Production-VPC</string>
+		<key>OvpnContent</key><string>client
+dev tun
+proto udp
+remote cvpn-endpoint-0a1b2c3d4e5f67890.prod.clientvpn.us-east-1.amazonaws.com 443
+remote-random-hostname
+resolv-retry infinite
+nobind
+remote-cert-tls server
+cipher AES-256-GCM
+verb 3
+auth-federate
+auth-retry interact
+</string>
+	</dict>" \
+	"<dict>
+		<key>ProfileName</key><string>Staging-VPC</string>
+		<key>OvpnContent</key><string>client
+dev tun
+proto udp
+remote cvpn-endpoint-a1b2c3d4e5f678901.prod.clientvpn.us-west-2.amazonaws.com 443
+remote-random-hostname
+resolv-retry infinite
+nobind
+remote-cert-tls server
+cipher AES-256-GCM
+verb 3
+auth-federate
+auth-retry interact
+</string>
+	</dict>"
+
+if [[ "${1:-}" == "--force-cleanup" ]]; then
+	defaults write "${DOMAIN}" ForceCleanup -bool true
+	echo "ForceCleanup enabled"
+fi
+
+echo "Wrote preferences to ~/Library/Preferences/${DOMAIN}.plist"
+echo "Run avc-sync to apply: /usr/local/bin/avc-sync"
+echo "To clear: $0 --clear"
+
