@@ -13,17 +13,24 @@ type MDMConfig struct {
 
 // AWSProfile is a single entry in the AWS VPN Client's ConnectionProfiles file.
 type AWSProfile struct {
-	ProfileName        string `json:"ProfileName"`
-	OvpnConfigFilePath string `json:"OvpnConfigFilePath"`
-	CvpnEndpointId     string `json:"CvpnEndpointId"`
-	CvpnEndpointRegion string `json:"CvpnEndpointRegion"`
+	ProfileName          string `json:"ProfileName"`
+	OvpnConfigFilePath   string `json:"OvpnConfigFilePath"`
+	CvpnEndpointId       string `json:"CvpnEndpointId"`
+	CvpnEndpointRegion   string `json:"CvpnEndpointRegion"`
 	CompatibilityVersion string `json:"CompatibilityVersion"`
-	FederatedAuthType  int    `json:"FederatedAuthType"`
+	FederatedAuthType    int    `json:"FederatedAuthType"`
+}
+
+// SyncState tracks the profile names currently managed by avc-sync.
+// It is persisted alongside ConnectionProfiles so that user-added profiles
+// are never removed by subsequent sync runs.
+type SyncState struct {
+	ManagedProfiles []string `json:"ManagedProfiles"`
 }
 
 // AWSConnectionProfiles is the root structure of ~/.config/AWSVPNClient/ConnectionProfiles.
 type AWSConnectionProfiles struct {
-	Version                string       `json:"Version"`
-	LastSelectedProfileIndex int         `json:"LastSelectedProfileIndex"`
-	ConnectionProfiles     []AWSProfile `json:"ConnectionProfiles"`
+	Version                  string       `json:"Version"`
+	LastSelectedProfileIndex int          `json:"LastSelectedProfileIndex"`
+	ConnectionProfiles       []AWSProfile `json:"ConnectionProfiles"`
 }
