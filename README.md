@@ -53,7 +53,20 @@ See `examples/mdm-payload.plist` for a complete example.
 | Ovpn config files | `~/.config/AWSVPNClient/OpenVpnConfigs/<ProfileName>` |
 | Profile registry | `~/.config/AWSVPNClient/ConnectionProfiles` |
 
-`avc-sync` treats the MDM payload as the source of truth — profiles present in MDM are created or updated, and profiles removed from MDM are deleted from both the registry and disk.
+`avc-sync` treats the MDM payload as the source of truth — profiles present in MDM are created or updated, and profiles removed from MDM are deleted from both the registry and disk. Profiles the user added manually are never removed (see `ForceCleanup` below).
+
+## ForceCleanup
+
+By default, `avc-sync` only removes profiles it previously created (tracked via a sidecar state file). Profiles the user added manually are left untouched.
+
+Set `ForceCleanup` to `true` in the MDM payload to remove **all** profiles not present in `VpnProfiles`, including user-added ones. This is intended for one-time migration scenarios — e.g., replacing ad-hoc profiles with a standardised managed set at MDM rollout.
+
+```xml
+<key>ForceCleanup</key>
+<true/>
+```
+
+Remove or set back to `false` after the cleanup to restore normal behaviour.
 
 ## Installed Paths
 

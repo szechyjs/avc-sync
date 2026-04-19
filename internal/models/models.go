@@ -8,7 +8,11 @@ type VpnProfile struct {
 
 // MDMConfig is the top-level structure of the managed preferences payload.
 type MDMConfig struct {
-	VpnProfiles []VpnProfile `plist:"VpnProfiles"`
+	VpnProfiles  []VpnProfile `plist:"VpnProfiles"`
+	// ForceCleanup removes all profiles not present in VpnProfiles, including
+	// ones the user added manually. Intended for one-time migration scenarios
+	// where administrators want to enforce a clean, fully-managed profile set.
+	ForceCleanup bool         `plist:"ForceCleanup"`
 }
 
 // AWSProfile is a single entry in the AWS VPN Client's ConnectionProfiles file.

@@ -60,5 +60,19 @@ auth-retry interact
         </dict>
 
     </array>
+
+    <!--
+      ForceCleanup (optional, default: false)
+
+      When true, avc-sync removes ALL profiles not present in VpnProfiles above,
+      including any profiles the user added manually. Useful during initial MDM
+      rollout to replace ad-hoc profiles with the standardised managed set.
+
+      Remove or set to false after the one-time cleanup to restore normal
+      behaviour (user-added profiles are left untouched).
+    -->
+    <!-- <key>ForceCleanup</key> -->
+    <!-- <true/> -->
+
 </dict>
 </plist>

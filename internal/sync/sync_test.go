@@ -263,3 +263,88 @@ func TestSync_HandlesEmptyMDMConfig(t *testing.T) {
 		t.Errorf("expected empty managed set, got %v", state.ManagedProfiles)
 	}
 }
+
+func TestSync_ForceCleanupRemovesUserAddedProfiles(t *testing.T) {
+	s, home := newTestSyncer(t)
+
+	// First sync via MDM to establish one managed profile.
+	if err := s.Sync(&models.MDMConfig{
+		VpnProfiles: []models.VpnProfile{
+			{ProfileName: "MDM-VPN", OvpnContent: "client\n"},
+		},
+	}); err != nil {
+		t.Fatalf("initial Sync() error: %v", err)
+	}
+
+	// Simulate user adding a profile directly.
+	root := readProfiles(t, home)
+	userOvpnPath := filepath.Join(home, ".config", "AWSVPNClient", "OpenVpnConfigs", "User-VPN")
+	os.WriteFile(userOvpnPath, []byte("client\n"), 0644)
+	root.ConnectionProfiles = append(root.ConnectionProfiles, models.AWSProfile{
+		ProfileName:          "User-VPN",
+		OvpnConfigFilePath:   userOvpnPath,
+		CompatibilityVersion: "1",
+	})
+	data, _ := json.Marshal(root)
+	os.WriteFile(filepath.Join(home, ".config", "AWSVPNClient", "ConnectionProfiles"), data, 0644)
+
+	// Sync with ForceCleanup — should remove User-VPN too.
+	if err := s.Sync(&models.MDMConfig{
+		VpnProfiles:  []models.VpnProfile{{ProfileName: "MDM-VPN", OvpnContent: "client\n"}},
+		ForceCleanup: true,
+	}); err != nil {
+		t.Fatalf("ForceCleanup Sync() error: %v", err)
+	}
+
+	result := readProfiles(t, home)
+	if len(result.ConnectionProfiles) != 1 {
+		t.Fatalf("expected 1 profile after ForceCleanup, got %d", len(result.ConnectionProfiles))
+	}
+	if result.ConnectionProfiles[0].ProfileName != "MDM-VPN" {
+		t.Errorf("expected only MDM-VPN to remain, got %q", result.ConnectionProfiles[0].ProfileName)
+	}
+	if _, err := os.Stat(userOvpnPath); !os.IsNotExist(err) {
+		t.Error("user profile's ovpn file should have been deleted during ForceCleanup")
+	}
+}
+
+func TestSync_ForceCleanupFalsePreservesUserProfiles(t *testing.T) {
+	s, home := newTestSyncer(t)
+
+	// Establish a managed profile.
+	if err := s.Sync(&models.MDMConfig{
+		VpnProfiles: []models.VpnProfile{
+			{ProfileName: "MDM-VPN", OvpnContent: "client\n"},
+		},
+	}); err != nil {
+		t.Fatalf("initial Sync() error: %v", err)
+	}
+
+	// Add a user profile directly.
+	root := readProfiles(t, home)
+	root.ConnectionProfiles = append(root.ConnectionProfiles, models.AWSProfile{
+		ProfileName:          "User-VPN",
+		OvpnConfigFilePath:   filepath.Join(home, ".config", "AWSVPNClient", "OpenVpnConfigs", "User-VPN"),
+		CompatibilityVersion: "1",
+	})
+	data, _ := json.Marshal(root)
+	os.WriteFile(filepath.Join(home, ".config", "AWSVPNClient", "ConnectionProfiles"), data, 0644)
+
+	// Sync without ForceCleanup — user profile must survive.
+	if err := s.Sync(&models.MDMConfig{
+		VpnProfiles:  []models.VpnProfile{{ProfileName: "MDM-VPN", OvpnContent: "client\n"}},
+		ForceCleanup: false,
+	}); err != nil {
+		t.Fatalf("Sync() error: %v", err)
+	}
+
+	result := readProfiles(t, home)
+	names := map[string]bool{}
+	for _, p := range result.ConnectionProfiles {
+		names[p.ProfileName] = true
+	}
+	if !names["User-VPN"] {
+		t.Error("User-VPN should be preserved when ForceCleanup is false")
+	}
+}
+

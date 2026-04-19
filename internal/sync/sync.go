@@ -76,13 +76,17 @@ func (s *Syncer) Sync(cfg *models.MDMConfig) error {
 		managedSet[name] = struct{}{}
 	}
 
-	// Remove only profiles that avc-sync previously created and that are no
-	// longer present in the MDM payload. User-added profiles are untouched.
+	// Determine which profiles to remove:
+	// - Normally: only profiles previously written by avc-sync (in managed set)
+	//   that are no longer in the MDM payload.
+	// - ForceCleanup: remove every profile not in the MDM payload, including
+	//   ones the user added manually.
 	kept := existing.ConnectionProfiles[:0]
 	for _, ap := range existing.ConnectionProfiles {
 		_, isManaged := managedSet[ap.ProfileName]
 		_, inMDM := mdmByName[ap.ProfileName]
-		if isManaged && !inMDM {
+		shouldRemove := !inMDM && (cfg.ForceCleanup || isManaged)
+		if shouldRemove {
 			_ = os.Remove(ap.OvpnConfigFilePath)
 		} else {
 			kept = append(kept, ap)
