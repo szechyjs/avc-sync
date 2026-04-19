@@ -140,3 +140,34 @@ func TestParse_NoRemoteDirective(t *testing.T) {
 		t.Errorf("expected default fields for minimal config")
 	}
 }
+
+func TestValidateName(t *testing.T) {
+	valid := []string{
+		"Production-VPC",
+		"Staging Environment",
+		"My VPN (US)",
+		"vpn_1",
+		"ABC123",
+		"",
+	}
+	for _, name := range valid {
+		if !ovpn.ValidateName(name) {
+			t.Errorf("ValidateName(%q) = false, want true", name)
+		}
+	}
+
+	invalid := []string{
+		"vpn/slash",
+		"vpn:colon",
+		"vpn@at",
+		"vpn#hash",
+		"vpn!bang",
+		"vpn.dot",
+		"vpn+plus",
+	}
+	for _, name := range invalid {
+		if ovpn.ValidateName(name) {
+			t.Errorf("ValidateName(%q) = true, want false", name)
+		}
+	}
+}

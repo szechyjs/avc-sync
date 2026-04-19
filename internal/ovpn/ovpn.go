@@ -20,6 +20,19 @@ var awsCvpnPattern = regexp.MustCompile(
 //	^\s*auth-federate(\s*)$
 var authFederatePattern = regexp.MustCompile(`(?m)^\s*auth-federate\s*$`)
 
+// validNamePattern mirrors the AWS VPN Client's IsValidName check:
+//
+//	^[a-zA-Z0-9\s()_\-]*$
+var validNamePattern = regexp.MustCompile(`^[a-zA-Z0-9\s()_\-]*$`)
+
+// ValidateName reports whether name is accepted by the AWS VPN Client.
+// It mirrors the client's own IsValidName check:
+//
+//	^[a-zA-Z0-9\s()_\-]*$
+func ValidateName(name string) bool {
+	return validNamePattern.MatchString(name)
+}
+
 // ParsedConfig holds the fields extracted from an ovpn file that the
 // AWS VPN Client stores in ConnectionProfiles.
 type ParsedConfig struct {

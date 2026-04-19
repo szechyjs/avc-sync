@@ -98,6 +98,11 @@ func (s *Syncer) Sync(cfg *models.MDMConfig) error {
 
 	// Upsert all profiles from MDM.
 	for _, p := range cfg.VpnProfiles {
+		if !ovpn.ValidateName(p.ProfileName) {
+			fmt.Fprintf(os.Stderr, "avc-sync: skipping profile with invalid name %q (only a-z, A-Z, 0-9, spaces, ()_- are allowed)\n", p.ProfileName)
+			continue
+		}
+
 		ovpnPath := filepath.Join(s.ovpnDir, sanitizeName(p.ProfileName))
 
 		if err := os.WriteFile(ovpnPath, []byte(p.OvpnContent), 0644); err != nil {
