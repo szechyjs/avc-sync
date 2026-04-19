@@ -1,0 +1,15 @@
+# Build artifacts
+build/
+*.pkg
+avc-sync
+
+# Go
+vendor/
+
+# macOS
+.DS_Store
+
+# Signing credentials (never commit these)
+*.p12
+*.cer
+notarize-creds.env

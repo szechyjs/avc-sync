@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>io.k8jss.avc-sync</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/avc-sync</string>
+    </array>
+
+    <!-- Trigger whenever the MDM preference file is created or updated -->
+    <key>WatchPaths</key>
+    <array>
+        <string>/Library/Managed Preferences/io.k8jss.avc-sync.plist</string>
+    </array>
+
+    <!-- Also run once at login to catch any pending updates -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Library/Logs/avc-sync.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Library/Logs/avc-sync.log</string>
+</dict>
+</plist>

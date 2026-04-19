@@ -1,0 +1,41 @@
+#!/bin/bash
+set -euo pipefail
+
+LAUNCH_AGENT_PLIST="/Library/LaunchAgents/io.k8jss.avc-sync.plist"
+LABEL="io.k8jss.avc-sync"
+LOADED=0
+
+# /Library/LaunchAgents/ is automatically loaded by macOS for every user at
+# login — including new accounts created after this PKG is installed. This
+# script only handles immediate activation for GUI sessions that are already
+# active at install time so users don't need to log out and back in.
+
+for user_home in /Users/*/; do
+    username=$(basename "$user_home")
+
+    # Skip the Shared folder and macOS system pseudo-users.
+    [[ "$username" == "Shared" ]] && continue
+    uid=$(id -u "$username" 2>/dev/null) || continue
+    [[ "$uid" -lt 500 ]] && continue
+
+    # Only bootstrap if this user has an active GUI (launchd) session.
+    if ! /bin/launchctl print "gui/${uid}" &>/dev/null 2>&1; then
+        continue
+    fi
+
+    echo "avc-sync postinstall: loading LaunchAgent for user ${username} (uid ${uid})"
+
+    # Unload any existing instance before reloading to pick up changes.
+    /bin/launchctl bootout "gui/${uid}/${LABEL}" 2>/dev/null || true
+    /bin/launchctl bootstrap "gui/${uid}" "${LAUNCH_AGENT_PLIST}"
+
+    LOADED=$((LOADED + 1))
+done
+
+if [[ "$LOADED" -eq 0 ]]; then
+    echo "avc-sync postinstall: no active GUI sessions found — LaunchAgent will load automatically at next login"
+else
+    echo "avc-sync postinstall: LaunchAgent loaded for ${LOADED} active session(s)"
+fi
+
+exit 0

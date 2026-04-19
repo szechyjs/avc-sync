@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Example MDM Custom Settings payload for avc-sync.
+
+  In NinjaOne:  Policies → Mac → Custom Payloads → Add Custom Settings
+  Domain:       io.k8jss.avc-sync
+  Payload:      Paste the contents of this file
+
+  In Jamf Pro:  Configuration Profiles → Custom Settings → Preference Domain
+  In Kandji:    Device Library → Custom Settings Profile
+
+  OvpnContent should contain the full text of the ovpn config file.
+  Replace the remote hostnames with your actual AWS Client VPN endpoint IDs.
+  Include `auth-federate` for SAML/SSO endpoints (most AWS Client VPN setups).
+-->
+<plist version="1.0">
+<dict>
+    <key>VpnProfiles</key>
+    <array>
+
+        <!-- Example: AWS Client VPN endpoint with SAML/federated auth -->
+        <dict>
+            <key>ProfileName</key>
+            <string>Production-VPC</string>
+            <key>OvpnContent</key>
+            <string>client
+dev tun
+proto udp
+remote cvpn-endpoint-0a1b2c3d4e5f67890.prod.clientvpn.us-east-1.amazonaws.com 443
+remote-random-hostname
+resolv-retry infinite
+nobind
+remote-cert-tls server
+cipher AES-256-GCM
+verb 3
+auth-federate
+auth-retry interact
+</string>
+        </dict>
+
+        <!-- Example: Second endpoint in a different region -->
+        <dict>
+            <key>ProfileName</key>
+            <string>Staging-VPC</string>
+            <key>OvpnContent</key>
+            <string>client
+dev tun
+proto udp
+remote cvpn-endpoint-a1b2c3d4e5f678901.prod.clientvpn.us-west-2.amazonaws.com 443
+remote-random-hostname
+resolv-retry infinite
+nobind
+remote-cert-tls server
+cipher AES-256-GCM
+verb 3
+auth-federate
+auth-retry interact
+</string>
+        </dict>
+
+    </array>
+</dict>
+</plist>
