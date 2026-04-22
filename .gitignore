@@ -1,6 +1,6 @@
 # Build artifacts
-build/
-*.pkg
+/dist
+/pkgbuild
 /avc-sync
 
 # Go

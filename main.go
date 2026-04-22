@@ -20,10 +20,15 @@ const (
 	preferenceKey = "VpnProfiles"
 )
 
+// version is set at build time via -ldflags "-X main.version=<value>".
+var version = "dev"
+
 func main() {
 	// Small startup delay to ensure the preference file has been fully
 	// written by cfprefsd before we attempt to read it.
 	time.Sleep(2 * time.Second)
+
+	fmt.Printf("avc-sync: version %s\n", version)
 
 	cfg, err := readManagedConfig()
 	if err != nil {

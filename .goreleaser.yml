@@ -1,0 +1,38 @@
+version: 2
+before:
+  hooks:
+    - go mod download
+builds:
+  - binary: avc-sync
+    flags:
+      - -trimpath
+    ldflags: -s -w -X main.version={{.Version}}
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+universal_binaries:
+  - replace: true
+    hooks:
+      post: ./pkg.sh "{{.Path}}" "{{.Version}}"
+checksum:
+  extra_files:
+    - glob: "./dist/avc-sync*.pkg"
+snapshot:
+  version_template: "{{.Tag}}-{{.ShortCommit}}"
+release:
+  github:
+    owner: szechyjs
+    name: avc-sync
+  prerelease: auto
+  extra_files:
+    - glob: dist/*.pkg
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
