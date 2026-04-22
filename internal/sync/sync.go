@@ -211,17 +211,17 @@ func atomicWriteJSON(dir, dest string, v any) error {
 	tmpPath := tmp.Name()
 
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		os.Remove(tmpPath)
+		tmp.Close()             //nolint:errcheck // best-effort cleanup on write failure
+		os.Remove(tmpPath)      //nolint:errcheck // best-effort cleanup on write failure
 		return fmt.Errorf("writing temp file: %w", err)
 	}
 	if err := tmp.Close(); err != nil {
-		os.Remove(tmpPath)
+		os.Remove(tmpPath) //nolint:errcheck // best-effort cleanup on close failure
 		return fmt.Errorf("closing temp file: %w", err)
 	}
 
 	if err := os.Rename(tmpPath, dest); err != nil {
-		os.Remove(tmpPath)
+		os.Remove(tmpPath) //nolint:errcheck // best-effort cleanup on rename failure
 		return fmt.Errorf("atomic rename to %s: %w", dest, err)
 	}
 	return nil
