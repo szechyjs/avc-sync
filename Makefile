@@ -62,7 +62,7 @@ package: layout
 		--root $(ROOT_DIR) \
 		--identifier $(APP_ID) \
 		--version $(VERSION) \
-		--scripts scripts \
+		--scripts pkgscripts \
 		$(BUILD_DIR)/$(BINARY_NAME)-component.pkg
 
 ## Sign the pkg with the Developer ID Installer certificate
