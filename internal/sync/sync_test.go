@@ -49,6 +49,20 @@ func readState(t *testing.T, home string) models.SyncState {
 	return state
 }
 
+func mustWriteFile(t *testing.T, path string, data []byte) {
+	t.Helper()
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		t.Fatalf("writing %s: %v", path, err)
+	}
+}
+
+func mustMkdirAll(t *testing.T, path string) {
+	t.Helper()
+	if err := os.MkdirAll(path, 0755); err != nil {
+		t.Fatalf("mkdir %s: %v", path, err)
+	}
+}
+
 func TestSync_CreatesDirectoriesAndConnectionProfiles(t *testing.T) {
 	s, home := newTestSyncer(t)
 
@@ -112,9 +126,9 @@ func TestSync_OnlyRemovesManagedProfiles(t *testing.T) {
 		CompatibilityVersion: "1",
 	})
 	data, _ := json.Marshal(root)
-	os.WriteFile(filepath.Join(home, ".config", "AWSVPNClient", "ConnectionProfiles"), data, 0644)
+	mustWriteFile(t, filepath.Join(home, ".config", "AWSVPNClient", "ConnectionProfiles"), data)
 	// Also write the ovpn file so removal can be verified.
-	os.WriteFile(filepath.Join(home, ".config", "AWSVPNClient", "OpenVpnConfigs", "User-Added"), []byte("client\n"), 0644)
+	mustWriteFile(t, filepath.Join(home, ".config", "AWSVPNClient", "OpenVpnConfigs", "User-Added"), []byte("client\n"))
 
 	// Second sync: MDM removes MDM-VPN2 but keeps MDM-VPN1.
 	cfg.VpnProfiles = cfg.VpnProfiles[:1]
@@ -200,7 +214,7 @@ func TestSync_FirstRunDoesNotRemovePreexistingProfiles(t *testing.T) {
 	s, home := newTestSyncer(t)
 
 	awsDir := filepath.Join(home, ".config", "AWSVPNClient")
-	os.MkdirAll(filepath.Join(awsDir, "OpenVpnConfigs"), 0755)
+	mustMkdirAll(t, filepath.Join(awsDir, "OpenVpnConfigs"))
 
 	// Pre-populate ConnectionProfiles as if the user already had a profile.
 	preExisting := models.AWSConnectionProfiles{
@@ -211,7 +225,7 @@ func TestSync_FirstRunDoesNotRemovePreexistingProfiles(t *testing.T) {
 		},
 	}
 	data, _ := json.Marshal(preExisting)
-	os.WriteFile(filepath.Join(awsDir, "ConnectionProfiles"), data, 0644)
+	mustWriteFile(t, filepath.Join(awsDir, "ConnectionProfiles"), data)
 
 	// No state file exists — first run of avc-sync on this machine.
 	cfg := &models.MDMConfig{
@@ -279,14 +293,14 @@ func TestSync_ForceCleanupRemovesUserAddedProfiles(t *testing.T) {
 	// Simulate user adding a profile directly.
 	root := readProfiles(t, home)
 	userOvpnPath := filepath.Join(home, ".config", "AWSVPNClient", "OpenVpnConfigs", "User-VPN")
-	os.WriteFile(userOvpnPath, []byte("client\n"), 0644)
+	mustWriteFile(t, userOvpnPath, []byte("client\n"))
 	root.ConnectionProfiles = append(root.ConnectionProfiles, models.AWSProfile{
 		ProfileName:          "User-VPN",
 		OvpnConfigFilePath:   userOvpnPath,
 		CompatibilityVersion: "1",
 	})
 	data, _ := json.Marshal(root)
-	os.WriteFile(filepath.Join(home, ".config", "AWSVPNClient", "ConnectionProfiles"), data, 0644)
+	mustWriteFile(t, filepath.Join(home, ".config", "AWSVPNClient", "ConnectionProfiles"), data)
 
 	// Sync with ForceCleanup — should remove User-VPN too.
 	if err := s.Sync(&models.MDMConfig{
@@ -328,7 +342,7 @@ func TestSync_ForceCleanupFalsePreservesUserProfiles(t *testing.T) {
 		CompatibilityVersion: "1",
 	})
 	data, _ := json.Marshal(root)
-	os.WriteFile(filepath.Join(home, ".config", "AWSVPNClient", "ConnectionProfiles"), data, 0644)
+	mustWriteFile(t, filepath.Join(home, ".config", "AWSVPNClient", "ConnectionProfiles"), data)
 
 	// Sync without ForceCleanup — user profile must survive.
 	if err := s.Sync(&models.MDMConfig{
@@ -347,4 +361,3 @@ func TestSync_ForceCleanupFalsePreservesUserProfiles(t *testing.T) {
 		t.Error("User-VPN should be preserved when ForceCleanup is false")
 	}
 }
-
