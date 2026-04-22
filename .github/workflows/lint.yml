@@ -1,0 +1,14 @@
+name: Lint
+
+on:
+  push:
+
+jobs:
+  lint:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
