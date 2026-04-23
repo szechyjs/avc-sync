@@ -129,3 +129,7 @@ make build
 # Clear the simulated MDM config
 ./scripts/simulate-mdm-push --clear
 ```
+
+## License
+
+GNU General Public License v3.0 — see [LICENSE](LICENSE).
