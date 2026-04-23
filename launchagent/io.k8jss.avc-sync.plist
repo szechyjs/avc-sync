@@ -19,11 +19,5 @@
     <!-- Also run once at login to catch any pending updates -->
     <key>RunAtLoad</key>
     <true/>
-
-    <key>StandardOutPath</key>
-    <string>/Library/Logs/avc-sync.log</string>
-
-    <key>StandardErrorPath</key>
-    <string>/Library/Logs/avc-sync.log</string>
 </dict>
 </plist>

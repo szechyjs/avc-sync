@@ -74,7 +74,7 @@ Remove or set back to `false` after the cleanup to restore normal behaviour.
 |---|---|
 | Binary | `/usr/local/bin/avc-sync` |
 | LaunchAgent | `/Library/LaunchAgents/io.k8jss.avc-sync.plist` |
-| Logs | `/Library/Logs/avc-sync.log` |
+| Logs | Console.app or `log stream --predicate 'process == "avc-sync"'` |
 
 ## Build Prerequisites
 
