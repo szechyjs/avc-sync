@@ -1,0 +1,27 @@
+#!/bin/bash
+# preinstall — unloads any running avc-sync LaunchAgent for all active GUI
+# sessions before the installer overwrites the binary.
+#
+# Without this, macOS holds a file lock on the running binary and the
+# installer cannot replace it cleanly.
+
+set -euo pipefail
+
+LABEL="io.k8jss.avc-sync"
+
+for user_home in /Users/*/; do
+	username=$(basename "$user_home")
+
+	[[ "$username" == "Shared" ]] && continue
+	uid=$(id -u "$username" 2>/dev/null) || continue
+	[[ "$uid" -lt 500 ]] && continue
+
+	if ! /bin/launchctl print "gui/${uid}" &>/dev/null 2>&1; then
+		continue
+	fi
+
+	echo "avc-sync preinstall: unloading LaunchAgent for user ${username} (uid ${uid})"
+	/bin/launchctl bootout "gui/${uid}/${LABEL}" 2>/dev/null || true
+done
+
+exit 0
