@@ -5,6 +5,11 @@ on:
     tags:
       - "*"
 
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
 jobs:
   goreleaser:
     runs-on: macos-latest
@@ -21,12 +26,12 @@ jobs:
           p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v2
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: latest
           args: release --clean
@@ -34,3 +39,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NOTARIZE_APPLE_ID: ${{ secrets.APPLE_ID }}
           NOTARIZE_PASSWORD: ${{ secrets.AC_PASSWORD }}
+
+      - name: Attestations
+        uses: actions/attest@v4
+        with:
+          subject-checksums: ./dist/checksums.txt
