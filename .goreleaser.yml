@@ -32,8 +32,4 @@ release:
   extra_files:
     - glob: dist/*.pkg
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
+  use: github-native
