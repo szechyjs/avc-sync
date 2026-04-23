@@ -79,7 +79,7 @@ Remove or set back to `false` after the cleanup to restore normal behaviour.
 ## Build Prerequisites
 
 - macOS with Xcode Command Line Tools (`xcode-select --install`)
-- Go 1.21+
+- Go 1.25+
 - Apple Developer account with:
   - **Developer ID Application** certificate (for signing the binary)
   - **Developer ID Installer** certificate (for signing the `.pkg`)
@@ -91,16 +91,16 @@ Remove or set back to `false` after the cleanup to restore normal behaviour.
 # Local build for the current architecture (unsigned, for testing)
 make build
 
+# Build and package (signed, no notarization — useful for local testing)
+SKIP_NOTARIZE=1 make release-pkg
+
 # Full signed + notarized release pkg
-DEVELOPER_ID_APP="Developer ID Application: Your Name (TEAMID)" \
-DEVELOPER_ID_INSTALLER="Developer ID Installer: Your Name (TEAMID)" \
 NOTARIZE_APPLE_ID="your@email.com" \
 NOTARIZE_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
-NOTARIZE_TEAM_ID="TEAMID" \
-make release
+make release-pkg
 ```
 
-The `release` target builds a universal binary (arm64 + amd64), signs it with Hardened Runtime, creates a signed `.pkg`, and notarizes + staples it with Apple.
+Releases are normally published via the GitHub Actions `Release` workflow — push a `v*` tag and goreleaser builds, signs, notarizes, and publishes automatically.
 
 ## Running Tests
 
@@ -110,7 +110,7 @@ make test
 
 ## Deployment (NinjaOne)
 
-1. Upload `avc-sync-<version>.pkg` to the NinjaOne Software Repository and deploy it to your target devices
+1. Upload `avc-sync_<version>.pkg` to the NinjaOne Software Repository and deploy it to your target devices
 2. Create a **Custom Settings** policy with domain `io.k8jss.avc-sync` containing your `VpnProfiles` array
 3. Assign the policy to your devices — profiles appear in the AWS VPN Client at next login (or immediately if the user is already logged in when the PKG is installed)
 
@@ -120,10 +120,12 @@ make test
 # Build the binary
 make build
 
-# Simulate an MDM push
-defaults write io.k8jss.avc-sync VpnProfiles -array \
-  '{ ProfileName = "TestVPN"; OvpnContent = "client\ndev tun\n"; }'
+# Simulate an MDM push (writes test profiles to user preferences)
+./scripts/simulate-mdm-push
 
 # Run directly
 ./avc-sync
+
+# Clear the simulated MDM config
+./scripts/simulate-mdm-push --clear
 ```
