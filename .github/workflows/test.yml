@@ -1,11 +1,11 @@
-name: Lint
+name: Test
 
 on:
   push:
   pull_request:
 
 jobs:
-  lint:
+  test:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
@@ -14,6 +14,4 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - uses: golangci/golangci-lint-action@v9
-        with:
-          version: latest
+      - run: make test
