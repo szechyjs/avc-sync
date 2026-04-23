@@ -26,14 +26,18 @@ const (
 )
 
 // version is set at build time via -ldflags "-X main.version=<value>".
-var version = "dev"
+var (
+	version = "dev"
+	commit  = "none" //nolint:unused
+	date    = "unknown"
+)
 
 func main() {
 	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf("avc-sync %s\n", version)
+		fmt.Printf("avc-sync %s, built at %s\n", version, date)
 		os.Exit(0)
 	}
 
