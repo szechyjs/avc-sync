@@ -92,7 +92,7 @@ Remove or set back to `false` after the cleanup to restore normal behaviour.
 make build
 
 # Build and package (signed, no notarization — useful for local testing)
-SKIP_NOTARIZE=1 make release-pkg
+make pkg
 
 # Full signed + notarized release pkg
 NOTARIZE_APPLE_ID="your@email.com" \
@@ -113,6 +113,11 @@ make test
 1. Upload `avc-sync_<version>.pkg` to the NinjaOne Software Repository and deploy it to your target devices
 2. Create a **Custom Settings** policy with domain `io.k8jss.avc-sync` containing your `VpnProfiles` array
 3. Assign the policy to your devices — profiles appear in the AWS VPN Client at next login (or immediately if the user is already logged in when the PKG is installed)
+
+## Known Limitations
+
+- **WatchPaths covers device-scoped MDM only** — The LaunchAgent watches `/Library/Managed Preferences/io.k8jss.avc-sync.plist` (device-scoped payloads). User-scoped MDM payloads (`/Library/Managed Preferences/<username>/`) are not watched; they are picked up at next login via `RunAtLoad`.
+- **`simulate-mdm-push` does not trigger the LaunchAgent** — The script writes to `~/Library/Preferences/` (user preference layer), which is not in `WatchPaths`. Run `./avc-sync` manually after running the script.
 
 ## Testing Locally
 
