@@ -262,3 +262,36 @@ func TestSync_ForceCleanupFalsePreservesUserProfiles(t *testing.T) {
 	}
 	assert.True(t, names["User-VPN"], "User-VPN should be preserved when ForceCleanup is false")
 }
+
+func TestSync_InvalidNameNotTrackedInState(t *testing.T) {
+	s, home := newTestSyncer(t)
+
+	// "bad/name" contains a slash — fails ValidateName, should be skipped entirely.
+	cfg := &models.MDMConfig{
+		VpnProfiles: []models.VpnProfile{
+			{ProfileName: "Good-VPN", OvpnContent: "client\n"},
+			{ProfileName: "bad/name", OvpnContent: "client\n"},
+		},
+	}
+	require.NoError(t, s.Sync(cfg))
+
+	state := readState(t, home)
+	assert.Equal(t, []string{"Good-VPN"}, state.ManagedProfiles,
+		"invalid-name profile should not appear in managed state")
+}
+
+func TestSync_InvalidNameNoFileWritten(t *testing.T) {
+	s, home := newTestSyncer(t)
+
+	cfg := &models.MDMConfig{
+		VpnProfiles: []models.VpnProfile{
+			{ProfileName: "bad/name", OvpnContent: "client\n"},
+		},
+	}
+	require.NoError(t, s.Sync(cfg))
+
+	ovpnDir := filepath.Join(home, ".config", "AWSVPNClient", "OpenVpnConfigs")
+	entries, err := os.ReadDir(ovpnDir)
+	require.NoError(t, err)
+	assert.Empty(t, entries, "no ovpn file should be written for an invalid profile name")
+}

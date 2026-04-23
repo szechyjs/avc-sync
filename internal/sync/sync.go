@@ -101,13 +101,14 @@ func (s *Syncer) Sync(cfg *models.MDMConfig) error {
 	}
 
 	// Upsert all profiles from MDM.
+	newState := models.SyncState{ManagedProfiles: make([]string, 0, len(cfg.VpnProfiles))}
 	for _, p := range cfg.VpnProfiles {
 		if !ovpn.ValidateName(p.ProfileName) {
 			fmt.Fprintf(os.Stderr, "avc-sync: skipping profile with invalid name %q (only a-z, A-Z, 0-9, spaces, ()_- are allowed)\n", p.ProfileName)
 			continue
 		}
 
-		ovpnPath := filepath.Join(s.ovpnDir, sanitizeName(p.ProfileName))
+		ovpnPath := filepath.Join(s.ovpnDir, p.ProfileName)
 
 		if err := os.WriteFile(ovpnPath, []byte(p.OvpnContent), 0644); err != nil {
 			return fmt.Errorf("writing ovpn config for %q: %w", p.ProfileName, err)
@@ -131,17 +132,15 @@ func (s *Syncer) Sync(cfg *models.MDMConfig) error {
 				FederatedAuthType:    parsed.FederatedAuthType,
 			})
 		}
+
+		// Only track profiles that were successfully written.
+		newState.ManagedProfiles = append(newState.ManagedProfiles, p.ProfileName)
 	}
 
 	if err := s.saveProfiles(existing); err != nil {
 		return err
 	}
 
-	// Persist the new managed set — exactly the profiles in the current MDM payload.
-	newState := models.SyncState{ManagedProfiles: make([]string, 0, len(cfg.VpnProfiles))}
-	for _, p := range cfg.VpnProfiles {
-		newState.ManagedProfiles = append(newState.ManagedProfiles, p.ProfileName)
-	}
 	return s.saveState(&newState)
 }
 
@@ -227,16 +226,3 @@ func atomicWriteJSON(dir, dest string, v any) error {
 	return nil
 }
 
-// sanitizeName makes a profile name safe for use as a filename.
-func sanitizeName(name string) string {
-	safe := make([]byte, len(name))
-	for i := range name {
-		c := name[i]
-		if c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|' {
-			safe[i] = '_'
-		} else {
-			safe[i] = c
-		}
-	}
-	return string(safe)
-}
