@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"time"
@@ -18,17 +19,27 @@ const (
 	// preferenceKey is the top-level key inside the payload that holds
 	// the array of VPN profiles.
 	preferenceKey = "VpnProfiles"
+
+	// forceCleanupKey is the top-level boolean key that triggers removal of
+	// all profiles not present in VpnProfiles, including user-added ones.
+	forceCleanupKey = "ForceCleanup"
 )
 
 // version is set at build time via -ldflags "-X main.version=<value>".
 var version = "dev"
 
 func main() {
+	showVersion := flag.Bool("version", false, "print version and exit")
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("avc-sync %s\n", version)
+		os.Exit(0)
+	}
+
 	// Small startup delay to ensure the preference file has been fully
 	// written by cfprefsd before we attempt to read it.
 	time.Sleep(2 * time.Second)
-
-	fmt.Printf("avc-sync: version %s\n", version)
 
 	cfg, err := readManagedConfig()
 	if err != nil {
@@ -59,16 +70,28 @@ func readManagedConfig() (*models.MDMConfig, error) {
 		return &models.MDMConfig{}, nil
 	}
 
-	// The plist library expects the root object to be a plist document.
+	// ForceCleanup is a top-level boolean key in the same domain. It must be
+	// read separately because CopyAppValue only returns a single key's value.
+	var forceCleanup bool
+	if fcBytes, err := cfprefs.CopyAppValue(preferenceDomain, forceCleanupKey); err == nil {
+		_, _ = plist.Unmarshal(fcBytes, &forceCleanup)
+	}
+
+	return parseMDMPayload(xmlBytes, forceCleanup)
+}
+
+// parseMDMPayload decodes the VpnProfiles plist value (as returned by
+// cfprefs.CopyAppValue) together with the separately-fetched forceCleanup flag
+// into an MDMConfig. It is a pure function to allow unit testing without CGO.
+func parseMDMPayload(vpnProfilesXML []byte, forceCleanup bool) (*models.MDMConfig, error) {
 	// CFPreferences returns the value for a single key (the array), so we
 	// wrap it in a dict to match our MDMConfig struct layout.
 	wrapped := map[string]interface{}{
 		preferenceKey: nil,
 	}
 
-	// Decode the raw value first, then re-encode with the wrapper key.
 	var rawValue interface{}
-	if _, err := plist.Unmarshal(xmlBytes, &rawValue); err != nil {
+	if _, err := plist.Unmarshal(vpnProfilesXML, &rawValue); err != nil {
 		return nil, fmt.Errorf("parsing preference value: %w", err)
 	}
 	wrapped[preferenceKey] = rawValue
@@ -83,5 +106,6 @@ func readManagedConfig() (*models.MDMConfig, error) {
 		return nil, fmt.Errorf("decoding MDM config: %w", err)
 	}
 
+	cfg.ForceCleanup = forceCleanup
 	return &cfg, nil
 }
