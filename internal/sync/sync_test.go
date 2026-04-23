@@ -295,3 +295,61 @@ func TestSync_InvalidNameNoFileWritten(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, entries, "no ovpn file should be written for an invalid profile name")
 }
+
+func TestSync_ResetsLastSelectedIndexWhenSelectedProfileRemoved(t *testing.T) {
+	s, home := newTestSyncer(t)
+
+	// Sync two profiles so ConnectionProfiles has indices 0 and 1.
+	require.NoError(t, s.Sync(&models.MDMConfig{
+		VpnProfiles: []models.VpnProfile{
+			{ProfileName: "VPN-A", OvpnContent: "client\n"},
+			{ProfileName: "VPN-B", OvpnContent: "client\n"},
+		},
+	}))
+
+	// Simulate the user having selected VPN-B (index 1).
+	root := readProfiles(t, home)
+	root.LastSelectedProfileIndex = 1
+	data, _ := json.Marshal(root)
+	mustWriteFile(t, filepath.Join(home, ".config", "AWSVPNClient", "ConnectionProfiles"), data)
+
+	// MDM removes VPN-B — selected index 1 is now out of bounds.
+	require.NoError(t, s.Sync(&models.MDMConfig{
+		VpnProfiles: []models.VpnProfile{
+			{ProfileName: "VPN-A", OvpnContent: "client\n"},
+		},
+	}))
+
+	result := readProfiles(t, home)
+	assert.Equal(t, -1, result.LastSelectedProfileIndex,
+		"LastSelectedProfileIndex should be reset to -1 when selected profile is removed")
+}
+
+func TestSync_PreservesLastSelectedIndexWhenNoProfilesRemoved(t *testing.T) {
+	s, home := newTestSyncer(t)
+
+	require.NoError(t, s.Sync(&models.MDMConfig{
+		VpnProfiles: []models.VpnProfile{
+			{ProfileName: "VPN-A", OvpnContent: "client\n"},
+			{ProfileName: "VPN-B", OvpnContent: "client\n"},
+		},
+	}))
+
+	// Simulate user selecting VPN-B (index 1).
+	root := readProfiles(t, home)
+	root.LastSelectedProfileIndex = 1
+	data, _ := json.Marshal(root)
+	mustWriteFile(t, filepath.Join(home, ".config", "AWSVPNClient", "ConnectionProfiles"), data)
+
+	// Sync same payload — no removals, index should be untouched.
+	require.NoError(t, s.Sync(&models.MDMConfig{
+		VpnProfiles: []models.VpnProfile{
+			{ProfileName: "VPN-A", OvpnContent: "client\n"},
+			{ProfileName: "VPN-B", OvpnContent: "client\n"},
+		},
+	}))
+
+	result := readProfiles(t, home)
+	assert.Equal(t, 1, result.LastSelectedProfileIndex,
+		"LastSelectedProfileIndex should be preserved when no profiles are removed")
+}

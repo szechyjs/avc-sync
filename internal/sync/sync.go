@@ -92,6 +92,11 @@ func (s *Syncer) Sync(cfg *models.MDMConfig) error {
 			kept = append(kept, ap)
 		}
 	}
+	if len(kept) < len(existing.ConnectionProfiles) {
+		// Profiles were removed; the saved index may now be out of bounds or
+		// point to the wrong profile. Reset so the client re-selects on next launch.
+		existing.LastSelectedProfileIndex = -1
+	}
 	existing.ConnectionProfiles = kept
 
 	// Build index of already-registered profiles for upsert.
